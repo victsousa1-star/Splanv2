@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { HardHat, AlertCircle } from "lucide-react";
-import { 
+import { AlertCircle, HardHat, Lock, Mail } from "lucide-react";
+import {
   auth,
-  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail 
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
 } from "../firebase-compat";
 import { AppConfig } from "../types";
 import { cn } from "../lib/utils";
@@ -17,10 +17,15 @@ export function LoginScreen({ appConfig }: { appConfig?: AppConfig }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetFeedback = () => {
     setError("");
     setMessage("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetFeedback();
+
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
@@ -30,9 +35,7 @@ export function LoginScreen({ appConfig }: { appConfig?: AppConfig }) {
       }
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {
-        setError(
-          'Este e-mail já está cadastrado. Por favor, clique em "Entrar".',
-        );
+        setError('Este e-mail ja esta cadastrado. Clique em "Entrar".');
       } else if (err.code === "auth/invalid-credential") {
         setError("E-mail ou senha incorretos.");
       } else {
@@ -43,18 +46,17 @@ export function LoginScreen({ appConfig }: { appConfig?: AppConfig }) {
 
   const handleResetPassword = async () => {
     if (!email) {
-      setError("Por favor, insira seu e-mail para redefinir a senha.");
+      setError("Informe seu e-mail para redefinir a senha.");
       return;
     }
+
     try {
       await sendPasswordResetEmail(auth, email);
-      setMessage(
-        "E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.",
-      );
+      setMessage("E-mail de redefinicao enviado. Verifique sua caixa de entrada.");
       setError("");
     } catch (err: any) {
       if (err.code === "auth/user-not-found") {
-        setError("E-mail não encontrado. Verifique se o e-mail está correto.");
+        setError("E-mail nao encontrado. Confira o endereco informado.");
       } else {
         setError(err.message);
       }
@@ -62,62 +64,64 @@ export function LoginScreen({ appConfig }: { appConfig?: AppConfig }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background radial glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-      
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-slate-800/80 shadow-2xl p-8 md:p-10 w-full max-w-md relative overflow-hidden card-shadow"
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="login-card w-full max-w-[440px] relative overflow-hidden"
       >
-        <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500" />
+        <div className="absolute left-0 top-0 h-1 w-full bg-[#123f35]" />
 
-        <div className="flex flex-col items-center mb-8">
-          <div className={cn(
-            "mb-6 flex items-center justify-center transition-transform hover:scale-[1.03]",
-            appConfig?.logoUrl 
-              ? "max-w-[180px] max-h-[70px]" 
-              : "bg-gradient-to-br from-blue-600 to-indigo-600 p-5 rounded-2xl shadow-lg shadow-blue-500/15 w-24 h-24"
-          )}>
+        <div className="flex flex-col items-center mb-7">
+          <div
+            className={cn(
+              "login-logo-wrap mb-4 flex items-center justify-center",
+              appConfig?.logoUrl ? "bg-transparent" : "bg-[#123f35] text-white",
+            )}
+          >
             {appConfig?.logoUrl ? (
-              <img
-                src={appConfig.logoUrl}
-                alt="Logo"
-                className="w-full h-full object-contain"
-              />
+              <img src={appConfig.logoUrl} alt="Logo" className="login-logo-img" />
             ) : (
-              <HardHat className="w-12 h-12 text-white" />
+              <HardHat className="h-9 w-9" />
             )}
           </div>
-          <h2 className="text-3xl font-bold text-white font-display tracking-tight mb-1">
+
+          <h2 className="font-display text-[2rem] leading-none font-black tracking-tight text-white mb-2">
             {appConfig?.name || "SPlan"}
           </h2>
-          <p className="text-slate-400 text-sm font-medium tracking-wide">
-            Gestão Inteligente de Obras
+          <p className="text-sm font-semibold tracking-wide text-slate-400">
+            Gestao Inteligente de Obras
           </p>
         </div>
 
-        <div className="flex mb-6 bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800/40">
+        <div className="login-segmented flex mb-6 p-1.5">
           <button
             type="button"
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 ${isLogin ? "bg-blue-600 text-white shadow-md shadow-blue-600/10" : "text-slate-500 hover:text-slate-300"}`}
+            className={cn(
+              "flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300",
+              isLogin
+                ? "bg-[#123f35] text-white shadow-md shadow-emerald-950/10"
+                : "text-slate-500 hover:text-slate-300",
+            )}
             onClick={() => {
               setIsLogin(true);
-              setError("");
-              setMessage("");
+              resetFeedback();
             }}
           >
             Entrar
           </button>
           <button
             type="button"
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 ${!isLogin ? "bg-blue-600 text-white shadow-md shadow-blue-600/10" : "text-slate-500 hover:text-slate-300"}`}
+            className={cn(
+              "flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300",
+              !isLogin
+                ? "bg-[#123f35] text-white shadow-md shadow-emerald-950/10"
+                : "text-slate-500 hover:text-slate-300",
+            )}
             onClick={() => {
               setIsLogin(false);
-              setError("");
-              setMessage("");
+              resetFeedback();
             }}
           >
             Criar Conta
@@ -126,67 +130,72 @@ export function LoginScreen({ appConfig }: { appConfig?: AppConfig }) {
 
         {error && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-red-500/10 text-red-400 text-xs p-3.5 rounded-xl mb-6 border border-red-500/20 font-medium flex items-center gap-3"
+            className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-xs font-semibold text-red-400"
           >
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>{error}</span>
           </motion.div>
         )}
+
         {message && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-emerald-500/10 text-emerald-400 text-xs p-3.5 rounded-xl mb-6 border border-emerald-500/20 font-medium flex items-center gap-3"
+            className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 text-xs font-semibold text-emerald-400"
           >
-            <span>{message}</span>
+            {message}
           </motion.div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 relative">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center px-0.5">
-              <label className="text-xs font-semibold text-slate-400">
-                E-mail
-              </label>
+            <label className="block px-0.5 text-xs font-bold text-slate-400">
+              E-mail
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="premium-input pl-11"
+                placeholder="seu@email.com"
+              />
             </div>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="premium-input"
-              placeholder="seu@email.com"
-            />
           </div>
+
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center px-0.5">
-              <label className="text-xs font-semibold text-slate-400">
-                Senha
-              </label>
+            <div className="flex items-center justify-between px-0.5">
+              <label className="text-xs font-bold text-slate-400">Senha</label>
               <button
                 type="button"
                 onClick={handleResetPassword}
-                className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                className="text-xs font-bold text-[#123f35] transition-opacity hover:opacity-75"
               >
                 Esqueci a senha
               </button>
             </div>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="premium-input"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="premium-input pl-11"
+                placeholder="********"
+              />
+            </div>
           </div>
+
           <button
             type="submit"
-            className="w-full btn-primary py-3.5 text-sm font-bold uppercase tracking-wider mt-2"
+            className="login-submit mt-2 w-full py-3.5 text-sm font-black uppercase tracking-wider"
           >
-            {isLogin ? "Entrar Agora" : "Começar Gratuitamente"}
+            {isLogin ? "Entrar Agora" : "Comecar Gratuitamente"}
           </button>
         </form>
       </motion.div>
