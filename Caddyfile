@@ -17,9 +17,14 @@
     format json
   }
 
-  rewrite /health /*
-  root * dist
-  encode gzip
-  file_server
-  try_files {path} /index.html
+  handle /health {
+    respond "ok" 200
+  }
+
+  handle {
+    root * dist
+    encode gzip
+    file_server
+    try_files {path} /index.html
+  }
 }
