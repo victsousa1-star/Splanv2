@@ -342,10 +342,9 @@ export function UserManagement({
           finalLogoUrl = publicUrlData.publicUrl;
         }
       } catch (err) {
-        console.error("Erro ao carregar logo para o Supabase", err);
-        toast.error("Erro ao processar imagem do logo.");
-        setSavingBranding(false);
-        return;
+        console.warn("Nao foi possivel otimizar/enviar o logo. Usando imagem local.", err);
+        finalLogoUrl = appLogo;
+        toast.warning("Logo salvo sem otimizacao de arquivo.");
       }
     }
 
