@@ -1616,6 +1616,8 @@ export default function App() {
       : "shopping"
     : getAccessScope(user);
   const canManageUsers = canUseModule(user, "admin", "manage_users", permissionTestProfile);
+  const canCreateShopping = canUseModule(user, "shopping", "create", permissionTestProfile);
+  const canCreateObras = canUseModule(user, "obras", "create", permissionTestProfile);
   const reportsForSelectedShopping = selectedShopping
     ? checklistReports.filter((report) => report.shoppingId === selectedShopping.id)
     : [];
@@ -1821,6 +1823,7 @@ export default function App() {
               shoppings={shoppingLocations}
               homeView={homeView}
               canDeleteShopping={canDeleteShopping}
+              canCreateShopping={canCreateShopping}
               onDeleteShopping={handleDeleteShopping}
             />
           ) : activeModule === "shopping" ? (
@@ -1861,6 +1864,7 @@ export default function App() {
                 }
               }}
               canDeleteShopping={canDeleteShopping}
+              canCreateShopping={canCreateShopping}
               onDeleteShopping={handleDeleteShopping}
             />
           ) : (activeModule === "admin" || isUserManagementView) && canManageUsers ? (
@@ -2118,6 +2122,7 @@ export default function App() {
               }}
               onUpdateLocation={handleUpdateLocation}
               user={user}
+              canCreateLocation={canCreateObras}
             />
           ) : selectedLocationId && selectedLocation ? (
             !selectedProjectId ? (
@@ -2163,6 +2168,7 @@ export default function App() {
                 onBack={handleBackToLocations}
                 onUpdateLocation={handleUpdateLocation}
                 user={user}
+                canCreateProject={canCreateObras}
                 onUpdateProject={async (updated) => {
                   const { id, ...projectData } = updated;
                   const oldProject = projects.find((p) => p.id === id);
@@ -2249,6 +2255,7 @@ function ShoppingModule({
   onClearShopping,
   onAddShopping,
   canDeleteShopping,
+  canCreateShopping,
   onDeleteShopping,
 }: {
   shoppings: Location[];
@@ -2258,6 +2265,7 @@ function ShoppingModule({
   onClearShopping: () => void;
   onAddShopping: (name: string) => void;
   canDeleteShopping: boolean;
+  canCreateShopping: boolean;
   onDeleteShopping: (shoppingId: string) => void;
 }) {
   const [shoppingName, setShoppingName] = useState("");
@@ -2268,6 +2276,10 @@ function ShoppingModule({
     const name = shoppingName.trim();
     if (!name) {
       toast.error("Informe o nome do shopping.");
+      return;
+    }
+    if (!canCreateShopping) {
+      toast.error("Voce nao tem permissao para criar shopping.");
       return;
     }
     onAddShopping(name);
@@ -2331,7 +2343,8 @@ function ShoppingModule({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
+      <div className={cn("grid grid-cols-1 gap-6", canCreateShopping && "xl:grid-cols-[380px_1fr]")}>
+        {canCreateShopping && (
         <form onSubmit={handleSubmit} className="airo-card p-5 space-y-4">
           <div>
             <h3 className="text-lg font-black text-white font-display">
@@ -2361,6 +2374,7 @@ function ShoppingModule({
             </button>
           )}
         </form>
+        )}
 
         <div className="airo-card p-5">
           <div className="flex items-center justify-between gap-3 mb-4">
@@ -4354,6 +4368,7 @@ function ModuleHome({
   shoppings,
   homeView,
   canDeleteShopping,
+  canCreateShopping,
   onDeleteShopping,
 }: {
   locations: Location[];
@@ -4369,6 +4384,7 @@ function ModuleHome({
   shoppings: Location[];
   homeView: "shoppings" | "modules";
   canDeleteShopping: boolean;
+  canCreateShopping: boolean;
   onDeleteShopping: (shoppingId: string) => void;
 }) {
   const visibleModules = getVisibleAppModules(
@@ -4410,13 +4426,15 @@ function ModuleHome({
                 Shoppings
               </h2>
             </div>
-            <button
-              onClick={() => onSelectModule("shopping")}
-              className="btn-secondary w-full md:w-auto"
-            >
-              <Plus className="w-5 h-5" />
-              Criar shopping
-            </button>
+            {canCreateShopping && (
+              <button
+                onClick={() => onSelectModule("shopping")}
+                className="btn-secondary w-full md:w-auto"
+              >
+                <Plus className="w-5 h-5" />
+                Criar shopping
+              </button>
+            )}
           </div>
 
           {shoppings.length === 0 ? (
@@ -4426,10 +4444,12 @@ function ModuleHome({
               </div>
               <h4>Nenhum shopping cadastrado</h4>
               <p>Cadastre um shopping para liberar os modulos do app.</p>
-              <button onClick={() => onSelectModule("shopping")} className="btn-primary mt-4">
-                <Plus className="w-5 h-5" />
-                Criar shopping
-              </button>
+              {canCreateShopping && (
+                <button onClick={() => onSelectModule("shopping")} className="btn-primary mt-4">
+                  <Plus className="w-5 h-5" />
+                  Criar shopping
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -4787,6 +4807,7 @@ function LocationList({
   onDeleteLocation,
   onUpdateLocation,
   user,
+  canCreateLocation,
 }: {
   locations: Location[];
   projects: Project[];
@@ -4795,6 +4816,7 @@ function LocationList({
   onDeleteLocation: (id: string) => void;
   onUpdateLocation: (l: Location) => void;
   user: any;
+  canCreateLocation: boolean;
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -4810,6 +4832,10 @@ function LocationList({
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingLocation && !canCreateLocation) {
+      toast.error("Voce nao tem permissao para criar locais de obra.");
+      return;
+    }
     let finalIconUrl = newIconUrl;
 
     if (newIconUrl && newIconUrl.startsWith("data:image")) {
@@ -4917,18 +4943,20 @@ function LocationList({
           </p>
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto">
-          <button
-            onClick={() => {
-            setEditingLocation(null);
-            setNewName("");
-            setNewIconUrl(null);
-            setShowModal(true);
-          }}
-          className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-600/20 font-bold text-sm md:text-base"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Local
-        </button>
+          {canCreateLocation && (
+            <button
+              onClick={() => {
+                setEditingLocation(null);
+                setNewName("");
+                setNewIconUrl(null);
+                setShowModal(true);
+              }}
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-600/20 font-bold text-sm md:text-base"
+            >
+              <Plus className="w-5 h-5" />
+              Novo Local
+            </button>
+          )}
       </div>
     </div>
 
@@ -7321,6 +7349,7 @@ function ProjectList({
   onBack,
   onUpdateLocation,
   user,
+  canCreateProject,
   onUpdateProject,
 }: {
   location?: Location;
@@ -7331,6 +7360,7 @@ function ProjectList({
   onBack: () => void;
   onUpdateLocation: (l: Location) => void;
   user: any;
+  canCreateProject: boolean;
   onUpdateProject: (p: Project) => void;
 }) {
   const [showModal, setShowModal] = useState(false);
@@ -7385,6 +7415,10 @@ function ProjectList({
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateProject) {
+      toast.error("Voce nao tem permissao para criar obras.");
+      return;
+    }
     if (!location) return;
     const newProject: Project = {
       id: Math.random().toString(36).substr(2, 9),
@@ -7498,7 +7532,7 @@ function ProjectList({
               Apresentação
             </button>
           )}
-          {activeLocationTab === 'obras' && locationRole !== "viewer" && (
+          {activeLocationTab === 'obras' && locationRole !== "viewer" && canCreateProject && (
             <button
               onClick={() => setShowModal(true)}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-2xl flex items-center gap-3 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-600/20 font-black active:scale-[0.98]"
