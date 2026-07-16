@@ -211,13 +211,29 @@ export function UserManagement({
     }
   };
 
-  const handleUpdateUserAccess = async (user: UserProfile, newLocationIds: string[]) => {
+  const handleUpdateUserAccess = async (
+    user: UserProfile,
+    newLocationIds: string[],
+    newAccessProfile: AccessProfileId,
+  ) => {
     setUpdatingAccess(true);
-    const id = toast.loading("Atualizando acessos...");
+    const id = toast.loading("Atualizando permissÃµes e acessos...");
 
     try {
       const batch = writeBatch(db);
       const userEmail = user.email.toLowerCase();
+      const isAdmin = newAccessProfile === "admin";
+
+      batch.update(doc(db, 'users', user.id), {
+        role: isAdmin ? 'admin' : 'user',
+        accessProfile: newAccessProfile,
+      });
+
+      if (isAdmin) {
+        batch.set(doc(db, 'admins', user.id), { email: user.email });
+      } else {
+        batch.delete(doc(db, 'admins', user.id));
+      }
 
       // For each location, check if user should have access or not
       for (const loc of locations) {
@@ -265,11 +281,11 @@ export function UserManagement({
       }
 
       await batch.commit();
-      toast.success("Acessos atualizados com sucesso!", { id });
+      toast.success("PermissÃµes atualizadas com sucesso!", { id });
       setShowAccessModal(null);
     } catch (error: any) {
       console.error("Error updating access:", error);
-      toast.error("Erro ao atualizar acessos: " + error.message, { id });
+      toast.error("Erro ao atualizar permissÃµes: " + error.message, { id });
     } finally {
       setUpdatingAccess(false);
     }
@@ -882,7 +898,7 @@ export function UserManagement({
           user={showAccessModal} 
           locations={locations} 
           onClose={() => setShowAccessModal(null)}
-          onSave={(newIds) => handleUpdateUserAccess(showAccessModal, newIds)}
+          onSave={(newIds, profile) => handleUpdateUserAccess(showAccessModal, newIds, profile)}
           loading={updatingAccess}
         />
       )}
@@ -894,10 +910,13 @@ function AccessManager({ user, locations, onClose, onSave, loading }: {
   user: UserProfile, 
   locations: Location[], 
   onClose: () => void, 
-  onSave: (ids: string[]) => void,
+  onSave: (ids: string[], profile: AccessProfileId) => void,
   loading: boolean
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [profile, setProfile] = useState<AccessProfileId>(
+    user.role === 'admin' ? 'admin' : user.accessProfile || 'gestor_shopping',
+  );
   const userEmail = user.email.toLowerCase();
 
   useEffect(() => {
@@ -917,7 +936,7 @@ function AccessManager({ user, locations, onClose, onSave, loading }: {
       <motion.div 
         initial={{ scale: 0.95, opacity: 0, y: 15 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="bg-slate-900 border border-slate-800/80 rounded-[2rem] p-6 md:p-8 w-full max-w-lg shadow-2xl relative overflow-hidden"
+        className="bg-slate-900 border border-slate-800/80 rounded-[2rem] p-6 md:p-8 w-full max-w-2xl shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
       >
         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-600 to-teal-600" />
         
@@ -933,13 +952,56 @@ function AccessManager({ user, locations, onClose, onSave, loading }: {
             <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-xl font-bold font-display text-white">Gerenciar Acessos</h3>
+            <h3 className="text-xl font-bold font-display text-white">Editar permissÃµes</h3>
             <p className="text-slate-400 text-xs font-medium truncate max-w-[280px]">{user.name || user.email}</p>
           </div>
         </div>
 
+        <div className="space-y-3 mb-6">
+          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Perfil de permissÃ£o
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {TEST_PROFILES.map((item) => {
+              const active = profile === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setProfile(item.id)}
+                  className={cn(
+                    "p-3.5 rounded-xl border text-left transition-all",
+                    active
+                      ? "bg-blue-600/10 border-blue-500/50 text-blue-300"
+                      : "bg-slate-950 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-white">{item.label}</p>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
+                    {active && <Check className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Shoppings e locais autorizados
+          </label>
+          <p className="text-xs text-slate-500 mt-1">
+            O perfil define o que ele pode fazer. A lista abaixo define onde ele pode atuar.
+          </p>
+        </div>
+
         <div className="space-y-1.5 max-h-60 overflow-y-auto pr-2 custom-scrollbar mb-6">
-          {locations.map(loc => (
+          {locations.filter(loc => loc.type !== 'allowance').map(loc => (
             <button
               key={loc.id}
               onClick={() => toggle(loc.id)}
@@ -975,7 +1037,7 @@ function AccessManager({ user, locations, onClose, onSave, loading }: {
             Cancelar
           </button>
           <button 
-            onClick={() => onSave(selectedIds)}
+            onClick={() => onSave(selectedIds, profile)}
             disabled={loading}
             className="flex-1 btn-primary text-xs font-bold uppercase tracking-wider py-2.5 shadow-md"
           >
