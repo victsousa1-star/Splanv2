@@ -217,7 +217,7 @@ export function UserManagement({
     newAccessProfile: AccessProfileId,
   ) => {
     setUpdatingAccess(true);
-    const id = toast.loading("Atualizando permissÃµes e acessos...");
+    const id = toast.loading("Atualizando permissões e acessos...");
 
     try {
       const batch = writeBatch(db);
@@ -281,11 +281,11 @@ export function UserManagement({
       }
 
       await batch.commit();
-      toast.success("PermissÃµes atualizadas com sucesso!", { id });
+      toast.success("Permissões atualizadas com sucesso!", { id });
       setShowAccessModal(null);
     } catch (error: any) {
       console.error("Error updating access:", error);
-      toast.error("Erro ao atualizar permissÃµes: " + error.message, { id });
+      toast.error("Erro ao atualizar permissões: " + error.message, { id });
     } finally {
       setUpdatingAccess(false);
     }
@@ -952,14 +952,14 @@ function AccessManager({ user, locations, onClose, onSave, loading }: {
             <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-xl font-bold font-display text-white">Editar permissÃµes</h3>
+            <h3 className="text-xl font-bold font-display text-white">Editar permissões</h3>
             <p className="text-slate-400 text-xs font-medium truncate max-w-[280px]">{user.name || user.email}</p>
           </div>
         </div>
 
         <div className="space-y-3 mb-6">
           <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            Perfil de permissÃ£o
+            Perfil de permissão
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {TEST_PROFILES.map((item) => {
