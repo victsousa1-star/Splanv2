@@ -18003,12 +18003,12 @@ function RdoEditor({
 
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const savePendingChanges = () => {
+  const savePendingChanges = (forceSave = false) => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
       debounceTimeoutRef.current = null;
     }
-    if (!isDirtyRef.current) {
+    if (!isDirtyRef.current && !forceSave) {
       setIsSaving(false);
       return;
     }
@@ -18030,6 +18030,11 @@ function RdoEditor({
     }
     isDirtyRef.current = false;
     setIsSaving(false);
+  };
+
+  const handleBackToList = () => {
+    savePendingChanges(true);
+    onBack();
   };
 
   useEffect(() => {
@@ -18320,7 +18325,7 @@ function RdoEditor({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
-            onClick={onBack}
+            onClick={handleBackToList}
             className="p-2.5 border border-slate-700 bg-slate-800 rounded-xl hover:bg-slate-700 text-slate-300 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -18355,7 +18360,7 @@ function RdoEditor({
             />
           </div>
           <button
-            onClick={onBack}
+            onClick={handleBackToList}
             className="bg-emerald-600 px-5 py-2 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-sm transition-colors"
           >
             Salvar e Voltar
