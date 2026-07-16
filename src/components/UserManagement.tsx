@@ -86,11 +86,13 @@ export function UserManagement({
   onUpdateAppConfig,
   permissionTestProfile,
   onChangePermissionTestProfile,
+  canManagePermissions = false,
 }: {
   appConfig: AppConfig;
   onUpdateAppConfig: (cfg: AppConfig) => void;
   permissionTestProfile?: AccessProfileId | null;
   onChangePermissionTestProfile?: (profile: AccessProfileId | null) => void;
+  canManagePermissions?: boolean;
 }) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -112,6 +114,12 @@ export function UserManagement({
   const [creating, setCreating] = useState(false);
   const [updatingAccess, setUpdatingAccess] = useState(false);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (!canManagePermissions && activeTab === 'permissions') {
+      setActiveTab('users');
+    }
+  }, [activeTab, canManagePermissions]);
 
   useEffect(() => {
     const qUsers = query(collection(db, 'users'), orderBy('email'));
@@ -301,7 +309,11 @@ export function UserManagement({
     }
   };
 
-  const filteredUsers = users.filter(u => 
+  const visibleUsers = canManagePermissions
+    ? users
+    : users.filter((u) => u.role !== 'admin' && u.accessProfile !== 'admin');
+
+  const filteredUsers = visibleUsers.filter(u => 
     u.email.toLowerCase().includes(search.toLowerCase()) || 
     (u.name && u.name.toLowerCase().includes(search.toLowerCase()))
   );
@@ -393,15 +405,17 @@ export function UserManagement({
           >
             <Users className="w-4 h-4" /> Usuários
           </button>
-          <button 
-            onClick={() => setActiveTab('permissions')}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 flex items-center gap-2 cursor-pointer",
-              activeTab === 'permissions' ? "bg-blue-600 text-white shadow-md shadow-blue-500/10" : "text-slate-400 hover:text-slate-200"
-            )}
-          >
-            <Shield className="w-4 h-4" /> Permissões
-          </button>
+          {canManagePermissions && (
+            <button 
+              onClick={() => setActiveTab('permissions')}
+              className={cn(
+                "px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 flex items-center gap-2 cursor-pointer",
+                activeTab === 'permissions' ? "bg-blue-600 text-white shadow-md shadow-blue-500/10" : "text-slate-400 hover:text-slate-200"
+              )}
+            >
+              <Shield className="w-4 h-4" /> Permissões
+            </button>
+          )}
           <button 
             onClick={() => setActiveTab('branding')}
             className={cn(
@@ -421,13 +435,15 @@ export function UserManagement({
                 <div className="w-1 h-4 bg-blue-500 rounded-full" />
                 Colaboradores Cadastrados
              </div>
-             <button 
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary py-2 px-4 text-xs font-bold uppercase tracking-wider shadow-md"
-            >
-              <UserPlus className="w-4 h-4" />
-              Convidar Integrante
-            </button>
+             {canManagePermissions && (
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary py-2 px-4 text-xs font-bold uppercase tracking-wider shadow-md"
+              >
+                <UserPlus className="w-4 h-4" />
+                Convidar Integrante
+              </button>
+             )}
           </div>
           
           <div className="airo-card p-6 shadow-xl">
@@ -482,20 +498,24 @@ export function UserManagement({
                       </td>
                       <td>
                         <div className="flex items-center justify-center gap-1.5">
-                          <button 
-                            onClick={() => setShowAccessModal(user)}
-                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all cursor-pointer"
-                            title="Gerenciar Acessos"
-                          >
-                            <Building2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
-                            title="Excluir Perfil"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canManagePermissions && (
+                            <>
+                              <button 
+                                onClick={() => setShowAccessModal(user)}
+                                className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all cursor-pointer"
+                                title="Gerenciar Acessos"
+                              >
+                                <Building2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                                title="Excluir Perfil"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -599,7 +619,7 @@ export function UserManagement({
                 <tbody>
                   {[
                     ["Administrador", "Global", "Total", "Total", "Gerencia"],
-                    ["Gerentes", "Shopping autorizado", "Criar e editar", "Criar, editar e PDF", "Consulta"],
+                    ["Gerentes", "Shopping autorizado", "Criar e editar", "Criar, editar e PDF", "Sem acesso"],
                     ["Operacoes", "Shopping autorizado", "Sem acesso", "Criar, editar e PDF", "Sem acesso"],
                     ["Somente leitura", "Obra ou loja compartilhada", "Somente se compartilhado", "Somente se compartilhado", "Sem acesso"],
                   ].map(([profile, scope, obras, checklists, userAccess]) => (

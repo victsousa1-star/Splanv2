@@ -1615,6 +1615,7 @@ export default function App() {
       ? "global"
       : "shopping"
     : getAccessScope(user);
+  const canManageUsers = canUseModule(user, "admin", "manage_users", permissionTestProfile);
   const reportsForSelectedShopping = selectedShopping
     ? checklistReports.filter((report) => report.shoppingId === selectedShopping.id)
     : [];
@@ -1671,7 +1672,7 @@ export default function App() {
           </button>
         </div>
         <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-          {canUseModule(user, "admin", "manage_users") && (
+          {canManageUsers && (
             <button
               onClick={() => {
                 handleSelectModule("admin");
@@ -1862,13 +1863,14 @@ export default function App() {
               canDeleteShopping={canDeleteShopping}
               onDeleteShopping={handleDeleteShopping}
             />
-          ) : activeModule === "admin" || isUserManagementView ? (
+          ) : (activeModule === "admin" || isUserManagementView) && canManageUsers ? (
             <UserManagement 
               key="user-mgt" 
               appConfig={appConfig}
               onUpdateAppConfig={handleUpdateAppConfig}
               permissionTestProfile={permissionTestProfile}
               onChangePermissionTestProfile={setPermissionTestProfile}
+              canManagePermissions={canManageUsers}
             />
           ) : activeModule === "lojas" ? (
             <StoresModule
