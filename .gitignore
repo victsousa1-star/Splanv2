@@ -1,0 +1,24 @@
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Arquivos auxiliares gerados durante refatoracoes locais
+count_functions.cjs
+extract_login.py
+extract_multi.cjs
+extract_types.cjs
+fix_all.cjs
+fix_restore.cjs
+insert.js
+remove_login.cjs
+restore.cjs
+script.ts
+script2.ts
+script3.ts
+update_rdo.py
+rdo_replacement*.txt

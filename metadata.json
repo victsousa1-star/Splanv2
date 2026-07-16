@@ -1,0 +1,8 @@
+{
+  "name": " SPlan V2",
+  "description": "Sistema de gestão de obras de construção civil com controle de medições e financeiro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

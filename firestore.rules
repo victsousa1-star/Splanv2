@@ -1,0 +1,307 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields:
+    //   - email: string (required)
+    //   - role: string (required, 'admin' | 'user')
+    //
+    // Collection: locations
+    // Fields:
+    //   - name: string (required)
+    //   - ownerId: string (required)
+    //   - sharedWith: map (optional) - email to role/permissions
+    //   - sharedEmails: list (optional) - list of emails for queries
+    //
+    // Collection: projects
+    // Fields:
+    //   - name: string (required)
+    //   - locationId: string (required)
+    //   - ownerId: string (required)
+    //   - sharedWith: map (optional)
+    //   - sharedEmails: list (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isAuthenticated() && request.auth.uid == ownerId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == "vict.sousa1@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isShared(data) {
+      return isAuthenticated() && (
+        (('sharedEmails' in data) && (data.sharedEmails is list) && (request.auth.token.email in data.sharedEmails)) ||
+        (('sharedWith' in data) && (data.sharedWith is map) && (request.auth.token.email in data.sharedWith))
+      );
+    }
+
+    function isParentShared(data) {
+      return isAuthenticated() && 
+             (
+               (exists(/databases/$(database)/documents/locations/$(data.allowanceId)) && 
+                (get(/databases/$(database)/documents/locations/$(data.allowanceId)).data.ownerId == request.auth.uid || 
+                 isShared(get(/databases/$(database)/documents/locations/$(data.allowanceId)).data)))
+               ||
+               (exists(/databases/$(database)/documents/allowances/$(data.allowanceId)) && 
+                (get(/databases/$(database)/documents/allowances/$(data.allowanceId)).data.ownerId == request.auth.uid || 
+                 isAdmin()))
+             );
+    }
+
+    function isEditor(data) {
+      return isOwner(data.ownerId) || isAdmin() || (
+        isShared(data) && 
+        data.sharedWith is map && 
+        request.auth.token.email in data.sharedWith && 
+        (
+          (data.sharedWith[request.auth.token.email] is string && data.sharedWith[request.auth.token.email] == 'editor') ||
+          (data.sharedWith[request.auth.token.email] is map && data.sharedWith[request.auth.token.email].role == 'editor')
+        )
+      );
+    }
+
+    function isValidLocation(data) {
+      return data.keys().hasAll(['name', 'ownerId']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.ownerId is string && data.ownerId.size() > 0;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['name', 'ownerId', 'locationId']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.ownerId is string && data.ownerId.size() > 0 &&
+             data.locationId is string && data.locationId.size() > 0;
+    }
+
+    function isValidStore(data) {
+      return data.keys().hasAll(['shoppingId', 'name', 'ownerId']) &&
+             data.shoppingId is string && data.shoppingId.size() > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.ownerId is string && data.ownerId.size() > 0;
+    }
+
+    function isValidChecklistReport(data) {
+      return data.keys().hasAll(['shoppingId', 'storeId', 'title', 'date', 'ownerId', 'createdAt']) &&
+             data.shoppingId is string && data.shoppingId.size() > 0 &&
+             data.storeId is string && data.storeId.size() > 0 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.date is string &&
+             data.ownerId is string && data.ownerId.size() > 0 &&
+             data.createdAt is number;
+    }
+
+    function isValidAllowance(data) {
+      return data.keys().hasAll(['storeName', 'value', 'ownerId']) &&
+             data.storeName is string && data.storeName.size() > 0 && data.storeName.size() < 200 &&
+             data.value is number &&
+             data.ownerId is string &&
+             (!('createdAt' in data) || data.createdAt is number);
+    }
+
+    function isValidAllowanceSupplier(data) {
+      return data.keys().hasAll(['allowanceId', 'name', 'ownerId', 'createdAt']) &&
+             data.allowanceId is string &&
+             data.name is string && data.name.size() > 0 &&
+             data.ownerId is string &&
+             data.createdAt is number;
+    }
+
+    function isValidAllowanceOC(data) {
+      return data.keys().hasAll(['allowanceId', 'supplierId', 'number', 'value', 'ownerId', 'createdAt']) &&
+             data.allowanceId is string &&
+             data.supplierId is string &&
+             data.number is string &&
+             data.value is number &&
+             data.ownerId is string &&
+             data.createdAt is number;
+    }
+
+    function isValidAllowanceContract(data) {
+      return data.keys().hasAll(['allowanceId', 'supplierId', 'type', 'totalValue', 'installmentsCount', 'periodicity', 'startDate', 'status', 'ownerId', 'createdAt']) &&
+             data.allowanceId is string &&
+             data.supplierId is string &&
+             data.type is string &&
+             data.totalValue is number &&
+             data.installmentsCount is number &&
+             data.periodicity is string &&
+             data.startDate is string &&
+             data.status is string &&
+             data.ownerId is string &&
+             data.createdAt is number;
+    }
+
+    function isValidAllowanceInstallment(data) {
+      return data.keys().hasAll(['contractId', 'allowanceId', 'number', 'dueDate', 'value', 'paidValue', 'status', 'ownerId', 'createdAt']) &&
+             data.contractId is string &&
+             data.allowanceId is string &&
+             data.number is number &&
+             data.dueDate is string &&
+             data.value is number &&
+             data.paidValue is number &&
+             data.status is string &&
+             data.ownerId is string &&
+             data.createdAt is number;
+    }
+
+    function isValidAllowancePayment(data) {
+      return data.keys().hasAll(['installmentId', 'contractId', 'allowanceId', 'date', 'value', 'method', 'documentNumber', 'ownerId', 'createdAt']) &&
+             data.installmentId is string &&
+             data.contractId is string &&
+             data.allowanceId is string &&
+             data.date is string &&
+             data.value is number &&
+             data.method is string &&
+             data.documentNumber is string &&
+             data.ownerId is string &&
+             data.createdAt is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /appConfig/{docId} {
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+
+    match /admins/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin(); 
+    }
+
+    match /users/{userId} {
+      allow get: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow list: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAdmin() || (isOwner(userId) && (request.resource.data.role == 'user' || request.auth.token.email == "vict.sousa1@gmail.com"));
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isOwner(userId) && 
+         incoming().role == existing().role && 
+         (incoming().diff(existing()).affectedKeys().hasOnly(['needsPasswordReset', 'name']) || isAdmin())
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow get: if isAuthenticated() && (isOwner(resource.data.ownerId) || isShared(resource.data) || isAdmin());
+      allow list: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        (('sharedEmails' in resource.data) && (request.auth.token.email in resource.data.sharedEmails)) ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && isValidProject(request.resource.data) && (isOwner(request.resource.data.ownerId) || isAdmin());
+      allow update: if isAuthenticated() && isValidProject(request.resource.data) && isEditor(resource.data);
+      allow delete: if isAuthenticated() && (isOwner(resource.data.ownerId) || isAdmin());
+    }
+
+    match /locations/{locationId} {
+      allow get: if isAuthenticated() && (isOwner(resource.data.ownerId) || isShared(resource.data) || isAdmin());
+      allow list: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        (('sharedEmails' in resource.data) && (request.auth.token.email in resource.data.sharedEmails)) ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && isValidLocation(request.resource.data) && (isOwner(request.resource.data.ownerId) || isAdmin());
+      allow update: if isAuthenticated() && isValidLocation(request.resource.data) && isEditor(resource.data);
+      allow delete: if isAuthenticated() && (isOwner(resource.data.ownerId) || isAdmin());
+    }
+
+    match /stores/{storeId} {
+      allow get: if isAuthenticated() && (isOwner(resource.data.ownerId) || isShared(resource.data) || isAdmin());
+      allow list: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        (('sharedEmails' in resource.data) && (request.auth.token.email in resource.data.sharedEmails)) ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && isValidStore(request.resource.data) && (isOwner(request.resource.data.ownerId) || isAdmin());
+      allow update: if isAuthenticated() && isValidStore(request.resource.data) && isEditor(resource.data);
+      allow delete: if isAuthenticated() && (isOwner(resource.data.ownerId) || isAdmin());
+    }
+
+    match /checklistReports/{reportId} {
+      allow get: if isAuthenticated() && (isOwner(resource.data.ownerId) || isShared(resource.data) || isAdmin());
+      allow list: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        (('sharedEmails' in resource.data) && (request.auth.token.email in resource.data.sharedEmails)) ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && isValidChecklistReport(request.resource.data) && (isOwner(request.resource.data.ownerId) || isAdmin());
+      allow update: if isAuthenticated() && isValidChecklistReport(request.resource.data) && isEditor(resource.data);
+      allow delete: if isAuthenticated() && (isOwner(resource.data.ownerId) || isAdmin());
+    }
+
+    match /allowances/{allowanceId} {
+      allow get, delete: if isAuthenticated() && (isOwner(resource.data.ownerId) || isAdmin());
+      allow list: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidAllowance(request.resource.data) && (isOwner(request.resource.data.ownerId) || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(resource.data.ownerId) || isAdmin());
+    }
+
+    match /allowance_suppliers/{id} {
+      allow list, get: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+      allow create: if isAuthenticated() && isValidAllowanceSupplier(request.resource.data) && (request.resource.data.ownerId == request.auth.uid || isParentShared(request.resource.data));
+      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+    }
+
+    match /allowance_ocs/{id} {
+      allow list, get: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+      allow create: if isAuthenticated() && isValidAllowanceOC(request.resource.data) && (request.resource.data.ownerId == request.auth.uid || isParentShared(request.resource.data));
+      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+    }
+
+    match /allowance_contracts/{id} {
+      allow list, get: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+      allow create: if isAuthenticated() && isValidAllowanceContract(request.resource.data) && (request.resource.data.ownerId == request.auth.uid || isParentShared(request.resource.data));
+      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+    }
+
+    match /allowance_installments/{id} {
+      allow list, get: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+      allow create: if isAuthenticated() && isValidAllowanceInstallment(request.resource.data) && (request.resource.data.ownerId == request.auth.uid || isParentShared(request.resource.data));
+      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+    }
+
+    match /allowance_payments/{id} {
+      allow list, get: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+      allow create: if isAuthenticated() && isValidAllowancePayment(request.resource.data) && (request.resource.data.ownerId == request.auth.uid || isParentShared(request.resource.data));
+      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin() || isParentShared(resource.data));
+    }
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "An construction project.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "locationId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "sharedWith": { "type": "object", "description": "Map of email to role (viewer/editor)" },
+        "sharedEmails": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "ownerId", "locationId"]
+    },
+    "Location": {
+      "title": "Location",
+      "description": "A construction site location.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "sharedWith": { "type": "object", "description": "Map of email to role (viewer/editor)" },
+        "sharedEmails": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the application.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "needsPasswordReset": { "type": "boolean" },
+        "name": { "type": "string" }
+      },
+      "required": ["email", "role", "needsPasswordReset"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Marker collection for admin users.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "AppConfig": {
+      "title": "App Config",
+      "description": "Branding configuration.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "logoUrl": { "type": "string" }
+      }
+    },
+    "Allowance": {
+      "title": "Allowance",
+      "description": "Store allowance tracking.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeName": { "type": "string" },
+        "value": { "type": "number" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "storeName", "value", "ownerId", "createdAt"]
+    },
+    "AllowanceSupplier": {
+      "title": "Allowance Supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "allowanceId": { "type": "string" },
+        "name": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "contact": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "allowanceId", "name", "ownerId", "createdAt"]
+    },
+    "AllowanceOC": {
+      "title": "Allowance OC",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "allowanceId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "number": { "type": "string" },
+        "value": { "type": "number" },
+        "description": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "allowanceId", "supplierId", "number", "value", "ownerId", "createdAt"]
+    },
+    "AllowanceContract": {
+      "title": "Allowance Contract",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "allowanceId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "type": { "type": "string" },
+        "totalValue": { "type": "number" },
+        "installmentsCount": { "type": "number" },
+        "periodicity": { "type": "string" },
+        "startDate": { "type": "string" },
+        "status": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "allowanceId", "supplierId", "type", "totalValue", "installmentsCount", "periodicity", "startDate", "status", "ownerId", "createdAt"]
+    },
+    "AllowanceInstallment": {
+      "title": "Allowance Installment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contractId": { "type": "string" },
+        "allowanceId": { "type": "string" },
+        "number": { "type": "number" },
+        "dueDate": { "type": "string" },
+        "value": { "type": "number" },
+        "paidValue": { "type": "number" },
+        "status": { "type": "string" },
+        "ocId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "contractId", "allowanceId", "number", "dueDate", "value", "paidValue", "status", "ownerId", "createdAt"]
+    },
+    "AllowancePayment": {
+      "title": "Allowance Payment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "installmentId": { "type": "string" },
+        "contractId": { "type": "string" },
+        "allowanceId": { "type": "string" },
+        "ocId": { "type": "string" },
+        "date": { "type": "string" },
+        "value": { "type": "number" },
+        "method": { "type": "string" },
+        "documentNumber": { "type": "string" },
+        "invoiceUrl": { "type": "string" },
+        "invoiceName": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "installmentId", "contractId", "allowanceId", "date", "value", "method", "documentNumber", "ownerId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/appConfig/{docId}": {
+      "schema": { "$ref": "AppConfig" },
+      "description": "Public branding configuration."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Collection of users and their roles."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "Admin" },
+      "description": "Collection of admin users for security rules validation."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "Project" },
+      "description": "Collection of construction projects."
+    },
+    "/locations/{locationId}": {
+      "schema": { "$ref": "Location" },
+      "description": "Collection of construction site locations."
+    },
+    "/allowances/{allowanceId}": {
+      "schema": { "$ref": "Allowance" },
+      "description": "Collection of store allowances."
+    },
+    "/allowance_suppliers/{id}": {
+      "schema": { "$ref": "AllowanceSupplier" },
+      "description": "Suppliers for allowances."
+    },
+    "/allowance_ocs/{id}": {
+      "schema": { "$ref": "AllowanceOC" },
+      "description": "Purchase orders for allowances."
+    },
+    "/allowance_contracts/{id}": {
+      "schema": { "$ref": "AllowanceContract" },
+      "description": "Contracts for allowances."
+    },
+    "/allowance_installments/{id}": {
+      "schema": { "$ref": "AllowanceInstallment" },
+      "description": "Installments for contracts."
+    },
+    "/allowance_payments/{id}": {
+      "schema": { "$ref": "AllowancePayment" },
+      "description": "Payments for installments."
+    }
+  }
+}
