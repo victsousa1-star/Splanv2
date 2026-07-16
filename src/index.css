@@ -171,9 +171,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .login-logo-wrap {
-  width: 9.25rem;
-  height: 7rem;
-  border-radius: 1.1rem;
+  width: 8rem;
+  height: 5.25rem;
+  border-radius: 1rem;
   overflow: hidden;
 }
 
@@ -182,7 +182,9 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  padding: 0.35rem;
+  filter: none;
+  mix-blend-mode: screen;
 }
 
 .login-segmented {
@@ -217,6 +219,7 @@ h1, h2, h3, h4, h5, h6 {
 
 :root[data-theme="light"] .login-logo-img {
   filter: none;
+  mix-blend-mode: normal;
 }
 
 :root[data-theme="light"] .login-segmented {
@@ -324,7 +327,7 @@ body {
   flex-shrink: 0;
   overflow: hidden;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 14px 34px -24px rgba(0, 0, 0, 0.9);
   transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
@@ -338,7 +341,9 @@ body {
   width: 4.6rem;
   height: 3.45rem;
   object-fit: contain;
-  filter: contrast(1.2) brightness(0.9);
+  padding: 0.25rem;
+  filter: none;
+  mix-blend-mode: screen;
 }
 
 .app-shell button:disabled,
@@ -558,6 +563,7 @@ table tbody tr:hover {
 
 :root[data-theme="light"] .splan-brand-logo {
   filter: contrast(1.08) brightness(0.98) saturate(1.05);
+  mix-blend-mode: normal;
 }
 
 :root[data-theme="light"] h1,
